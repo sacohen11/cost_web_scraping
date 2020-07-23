@@ -28,6 +28,7 @@ detach_package = function(pkg, character.only = FALSE) { if(!character.only) { p
 ```
 
 ```{r load packages}
+loadPkg("writexl")
 loadPkg('plyr')
 loadPkg("dplyr")
 loadPkg("rvest")
@@ -88,10 +89,12 @@ for(i in 2:length(trustee[[1]])){
 print(df2)
 ```
 
-```{r combine datasets}
+```{r combine datasets and export to excel}
 ceo_trustee_combined <- rbind(df1, df2)
 
 ceo_trustee_combined <- ceo_trustee_combined %>%
   arrange(name) 
 print(ceo_trustee_combined)
+
+write_xlsx(ceo_trustee_combined, path=paste(getwd(),"mitre.xlsx", sep="/"))
 ```
