@@ -1,0 +1,97 @@
+---
+title: "web_scraping_script"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+require("knitr")
+#opts_knit$set(root.dir = )
+```
+
+```{r basicfcn, echo=F}
+# use this function to conveniently load libraries and work smoothly with knitting
+# can add quietly=T option to the require() function
+# note that using this function requires quotes around the package name, as you would when installing packages.
+loadPkg = function(x) { if (!require(x,character.only=T, quietly =T)) { install.packages(x,dep=T,repos="http://cran.us.r-project.org"); if(!require(x,character.only=T)) stop("Package not found") } }
+# unload/detact package when done using it 
+detach_package = function(pkg, character.only = FALSE) { if(!character.only) { pkg <- deparse(substitute(pkg)) } 
+  search_item <- paste("package", pkg,sep = ":") 
+  while(search_item %in% search()) { detach(search_item, unload = TRUE, character.only = TRUE) } 
+}
+```
+
+```{r load packages}
+loadPkg('plyr')
+loadPkg("dplyr")
+loadPkg("rvest")
+loadPkg("stringr")
+loadPkg("magrittr")
+```
+
+``` {r load in url}
+url <- "https://en.wikipedia.org/wiki/Mitre_Corporation"
+#webpage <- readLines(url)
+webpage <- read_html(url)
+print(webpage)
+```
+
+``` {r create empty dataframe}
+df1 <- data.frame(observation=c(1:9))
+df2 <- data.frame(observation=c(10:28))
+```
+
+```{r find MITRE former CEOs}
+check_page_ceo <- webpage %>%
+  html_nodes("ul") %>%
+  extract(3) %>%
+  #html_nodes("li") %>%
+  html_text()
+
+ceo <- strsplit(check_page_ceo, "\n")
+
+start <- '^([0-9]{4})'
+end <- "[\\–]([[:alnum:]]{4,})"
+name <- "\\s.*$"
+print(ceo)
+
+for(i in 1:length(ceo[[1]])){
+  print(ceo[[1]][i])
+  df1$start_year[i] <- regmatches(ceo[[1]][i], regexpr(start, ceo[[1]][i]))
+  df1$end_year[i] <- substr(str_match(ceo[[1]][i], end), 2, 10)
+  df1$name[i] <- substr(regmatches(ceo[[1]][i], regexpr(name, ceo[[1]][i])),2,100)
+  df1$trustee[i] <- 0
+}
+print(df1)
+```
+
+```{r trustee}
+check_page_trustee <- webpage %>%
+  html_nodes(".div-col.columns.column-width") %>%
+  html_text()
+print(check_page_trustee)
+
+trustee <- strsplit(check_page_trustee, "\n")
+print(trustee)
+for(i in 2:length(trustee[[1]])){
+  df2$name[i-1] <- trustee[[1]][i]
+  df2$trustee[i-1] <- 1
+  df2$start_year[i-1] <- NA
+  df2$end_year[i-1] <- NA
+}
+print(df2)
+```
+
+```{r combine datasets}
+ceo_trustee_combined <- rbind(df1, df2)
+
+ceo_trustee_combined <- ceo_trustee_combined %>%
+  arrange(name) 
+print(ceo_trustee_combined)
+```
